@@ -89,3 +89,28 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+int
+sys_exit2(void)
+{
+  int status;
+
+  // 0번째 인자로 들어온 정수(int)를 status 변수에 저장[cite: 110, 116].
+  if(argint(0, &status) < 0)
+    return -1;
+
+  exit2(status);
+  return 0; // 실제로는 exit2에서 프로세스가 종료되므로 이 줄은 실행되지 않음.
+}
+
+int
+sys_wait2(void)
+{
+  int *status;
+
+  // 0번째 인자로 들어온 포인터(주소값)를 status 변수에 저장[cite: 111, 116].
+  if(argptr(0, (char**)&status, sizeof(int*)) < 0)
+    return -1;
+
+  return wait2(status);
+}
