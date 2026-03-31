@@ -11744,7 +11744,7 @@ sys_wait2(void)
 80105f72:	89 e5                	mov    %esp,%ebp
 80105f74:	83 ec 18             	sub    $0x18,%esp
   int *status;
-  if(argptr(0, (void*)&status, sizeof(*status)) < 0)
+  if(argptr(0, (char**)&status, sizeof(*status)) < 0)
 80105f77:	83 ec 04             	sub    $0x4,%esp
 80105f7a:	6a 04                	push   $0x4
 80105f7c:	8d 45 f4             	lea    -0xc(%ebp),%eax
