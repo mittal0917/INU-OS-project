@@ -56,6 +56,10 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
+    if(myproc() && (tf->cs & 3) == DPL_USER && myproc()->scheduler != 0){
+    tf->eip = myproc()->scheduler; // 다음 실행 위치를 스케줄러로 강제 변경
+    return; // 함수 종료 (하단의 yield를 실행하지 않음)
+    }
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();

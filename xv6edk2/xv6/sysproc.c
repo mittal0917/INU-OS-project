@@ -114,3 +114,10 @@ sys_wait2(void)
 
   return wait2(status);
 }
+
+int sys_uthread_init(void) {
+  int addr;
+  if(argint(0, &addr) < 0) return -1;
+  myproc()->scheduler = (uint)addr;
+  return 0;
+}
