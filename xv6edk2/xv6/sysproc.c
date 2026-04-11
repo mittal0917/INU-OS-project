@@ -108,3 +108,14 @@ sys_wait2(void)
     return -1;
   return wait2(status);
 }
+
+
+int sys_uthread_init(void) {
+  int addr;
+  // 첫 번째 인자(유저 스케줄러 함수의 주소)를 가져옴
+  if(argint(0, &addr) < 0)
+    return -1;
+  myproc()->scheduler = addr;
+  //cprintf("Kernel received scheduler address: 0x%x\n", addr);
+  return 0;
+}

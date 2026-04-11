@@ -56,6 +56,19 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
+
+// [새로 추가한 코드]
+    // 현재 프로세스가 존재하고, 인터럽트가 유저 모드에서 발생했으며, 스케줄러가 등록된 경우
+    if(myproc() != 0 && (tf->cs & 3) == 3 && myproc()->scheduler != 0) {
+      //cprintf("Timer interrupt: switching to user scheduler!\n"); // 트랩 시도 확인
+
+      // 1. 유저 스택 포인터를 4바이트 내림
+      tf->esp -= 4;
+      // 2. 원래 돌아가야 할 주소(기존 EIP)를 유저 스택에 Push
+      *((uint*)(tf->esp)) = tf->eip;
+      // 3. 프로그램 카운터를 유저 스케줄러 함수의 주소로 덮어씌움
+      tf->eip = myproc()->scheduler;
+    }
     break;
   case T_IRQ0 + IRQ_IDE:
     ideintr();
