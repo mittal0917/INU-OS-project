@@ -56,11 +56,18 @@ trap(struct trapframe *tf)
       release(&tickslock);
     }
     lapiceoi();
-    if(myproc() && (tf->cs & 3) == DPL_USER && myproc()->scheduler != 0){
-    tf->eip = myproc()->scheduler; // 다음 실행 위치를 스케줄러로 강제 변경
-    return; // 함수 종료 (하단의 yield를 실행하지 않음)
+    
+    // User-level thread scheduling support
+    // Check if current process has user-level scheduler registered
+    if(myproc() && myproc()->state == RUNNING && 
+       (tf->cs & 3) == DPL_USER && myproc()->scheduler != 0){
+      // Modify trapframe to call user-level scheduler on return
+      tf->esp -= 4;
+      *(uint*)(tf->esp) = tf->eip;  // Push return address
+      tf->eip = myproc()->scheduler; // Jump to scheduler
     }
     break;
+    
   case T_IRQ0 + IRQ_IDE:
     ideintr();
     lapiceoi();
@@ -81,7 +88,7 @@ trap(struct trapframe *tf)
     lapiceoi();
     break;
   case T_IRQ0 + IRQ_SPURIOUS:
-    cprintf("cpu%d: spurious interrupt at %x:%x\n",
+    cprintf("cpu%d: spurious interrupt at %x:%x\\n",
             cpuid(), tf->cs, tf->eip);
     lapiceoi();
     break;
@@ -90,13 +97,13 @@ trap(struct trapframe *tf)
   default:
     if(myproc() == 0 || (tf->cs&3) == 0){
       // In kernel, it must be our mistake.
-      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\n",
+      cprintf("unexpected trap %d from cpu %d eip %x (cr2=0x%x)\\n",
               tf->trapno, cpuid(), tf->eip, rcr2());
       panic("trap");
     }
     // In user space, assume process misbehaved.
     cprintf("pid %d %s: trap %d err %d on cpu %d "
-            "eip 0x%x addr 0x%x--kill proc\n",
+            "eip 0x%x addr 0x%x--kill proc\\n",
             myproc()->pid, myproc()->name, tf->trapno,
             tf->err, cpuid(), tf->eip, rcr2());
     myproc()->killed = 1;
@@ -110,9 +117,13 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
+  // Skip yield if user-level scheduler is active
   if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
-    yield();
+     tf->trapno == T_IRQ0+IRQ_TIMER){
+    // Don't yield if user-level scheduler is handling it
+    if(!((tf->cs & 3) == DPL_USER && myproc()->scheduler != 0))
+      yield();
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)
