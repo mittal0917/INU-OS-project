@@ -196,7 +196,7 @@ UPROGS=\
 	_hello\
 	_lab1_test\
 	_myid\
-	_uthread1\
+	_uthread1
 fs.img: mkfs README $(UPROGS)
 	./mkfs fs.img README $(UPROGS)
 
